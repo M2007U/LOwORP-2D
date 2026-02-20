@@ -34,6 +34,23 @@ function POwO_Math_LERP(A, B, t)
     return (B-A) * t + A
 }
 
+function POwO_Math_LERP_Array(A,B,t)
+{
+    if (A.length === B.length)
+    {
+        let V = []
+        for(let i = 0 ; i < A.length ; i++)
+        {
+            V.push(POwO_Math_LERP(A[i],B[i],t))
+        }
+        return V
+    }
+    else
+    {
+        return []
+    }
+}
+
 //math lerping rev
 function POwO_Math_LERPinv(A,B,V)
 {
@@ -139,9 +156,9 @@ function POwO_RedrawAll(inDrawData)
         let temp_Catch = POwO_QuickCalculate(i)
         temp_trailPositions.push( temp_Catch[0] )
     }
-    console.log(JSON.stringify(temp_trailPositions))
+    //console.log(JSON.stringify(temp_trailPositions))
     ctx.beginPath()
-    ctx.strokeStyle = "rgba(255,255,255,1)"
+    ctx.strokeStyle = "rgba(128,192,0,1)"
     ctx.lineWidth = 5
     ctx.moveTo( temp_trailPositions[0][0] , temp_trailPositions[0][1] )
     for(let i = 1 ; i < temp_trailPositions.length; i ++) //draw all the lines
@@ -158,7 +175,7 @@ function POwO_RedrawAll(inDrawData)
     
 
     //draw all the lines
-    ctx.strokeStyle = "rgba(255,255,255,0.25)"
+    ctx.strokeStyle = "rgba(255,192,0,1)"
     ctx.lineWidth = 2
     for(let i = 0 ; i < in_drawcall_lines.length ; i ++) 
     {
@@ -169,25 +186,48 @@ function POwO_RedrawAll(inDrawData)
     }
 
     //draw all the lerping points
-    ctx.fillStyle = "rgba(255,0,0,0.5)";
+    ctx.fillStyle = "rgba(255,192,0,1)";
     ctx.strokeStyle = "rgba(0,0,0,0)";
     ctx.lineWidth = 0;
     for(let i = 0 ; i < in_drawcall_points.length ; i++) 
     {
+        let temp_currentRadius = 12
         if (i === in_drawcall_points.length - 1)
         {
-            ctx.fillStyle = "rgba(255,192,0,1)";
+            //write text first
+            ctx.fillStyle = "rgba(128,192,0,1)";
+            ctx.font = "24px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("t = " + GLOBAL_Tvalue, in_drawcall_points[i][0], in_drawcall_points[i][1]-50);
+            
+            //then draw the point
+            ctx.fillStyle = "rgba(128,192,0,1)";
+            temp_currentRadius = 16
         }
 
         ctx.beginPath()
-        ctx.arc(in_drawcall_points[i][0], in_drawcall_points[i][1], 16, 0, Math.PI * 2)
+        ctx.arc(in_drawcall_points[i][0], in_drawcall_points[i][1], temp_currentRadius, 0, Math.PI * 2)
         ctx.fill();
         ctx.stroke();
     }
 
+    let temp_StartColor = [255,0,0,1]
+    let temp_EndColor = [0,255,255,1]
     for(let i = 0 ; i < GLOBAL_shapeList.length ; i++) //draw all control points
     {
+        let temp_CurrentColor = POwO_Math_LERP_Array(temp_StartColor,temp_EndColor,i/(GLOBAL_shapeList.length-1))
+        let temp_CurrentColorString = "rgba(" + temp_CurrentColor[0] + "," + temp_CurrentColor[1] + "," + temp_CurrentColor[2] + "," + temp_CurrentColor[3] + ")"
+
+        GLOBAL_shapeList[i].ColorFill = temp_CurrentColorString
         GLOBAL_shapeList[i].drawMe(ctx)
+
+        ctx.fillStyle = temp_CurrentColorString;         // text color
+        ctx.font = "24px Arial";         // font size and family
+        ctx.textAlign = "center";   // "start" | "end" | "left" | "right" | "center"
+        ctx.textBaseline = "middle"; // "top" | "hanging" | "middle" | "alphabetic" | "ideographic" | "bottom"
+        ctx.fillText("P" + i.toString(), GLOBAL_shapeList[i].PosX, GLOBAL_shapeList[i].PosY+50);  // x, y = position (baseline by default)
+        
     }
 }
 
@@ -368,9 +408,9 @@ var GLOBAL_TvalueDelta = 1/128
 // ---- ---- ---- ---- RUN MAIN
 
 let smol_P0 = new ShOwOpe(500, 500, 1, "circle", 25, -1, "rgba(0,0,0,0)", 0, "rgba(255,0,0,1)",true,"P0")
-let smol_P1 = new ShOwOpe(800, 300, 1, "circle", 25, -1, "rgba(0,0,0,0)", 0, "rgba(255,0,0,1)",true,"P1")
-let smol_P2 = new ShOwOpe(800, 700, 1, "circle", 25, -1, "rgba(0,0,0,0)", 0, "rgba(255,0,0,1)",true,"P2")
-let smol_P3 = new ShOwOpe(1100, 500, 1, "circle", 25, -1, "rgba(0,0,0,0)", 0, "rgba(255,0,0,1)",true,"P3")
+let smol_P1 = new ShOwOpe(800, 300, 1, "circle", 25, -1, "rgba(0,0,0,0)", 0, "rgba(255,255,255,1)",true,"P1")
+let smol_P2 = new ShOwOpe(800, 700, 1, "circle", 25, -1, "rgba(0,0,0,0)", 0, "rgba(255,255,255,1)",true,"P2")
+let smol_P3 = new ShOwOpe(1100, 500, 1, "circle", 25, -1, "rgba(0,0,0,0)", 0, "rgba(0,255,255,1)",true,"P3")
 
 
 GLOBAL_shapeList.push(smol_P0)
