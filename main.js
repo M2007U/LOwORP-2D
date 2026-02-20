@@ -70,19 +70,27 @@ function POwO_getMouse(event)
     };
 }
 
-function POwO_RedrawAll()
+function POwO_QuickCalculate(inCurrentTValue)
 {
+    /*
+    will return :
+    [
+        [FinalPosX, Final.PosY],
+        lineCoordinates = [[X1,Y1,X2,Y2] , [X1,Y1,X2,Y2] , ... , [X1,Y1,X2,Y2]]  ,
+        PointCoordinates = [[X,Y] , [X,Y] , ... , [X,Y]]
+    ]
+    */
+
+    let out_final_pos = [null,null]
+    let out_drawcall_lines = []
+    let out_drawcall_points = []
+
     let temp_TODO_A = []
     let temp_TODO_B = []
 
-    let temp_DRAWCALL_lines = []
-    let temp_DRAWCALL_points = []
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height); //clear frame
-
     for(let i = 0 ; i < GLOBAL_shapeList.length ; i++) //adding all control points to the todo list
     {
-        temp_TODO_A.push( GLOBAL_shapeList[i] )
+        temp_TODO_A.push( [GLOBAL_shapeList[i].PosX , GLOBAL_shapeList[i].PosY] )
     }
 
     let EmergencyBrake = 1024
@@ -96,18 +104,13 @@ function POwO_RedrawAll()
             let temp_A = temp_TODO_A[i]
             let temp_B = temp_TODO_A[i+1]
 
-            temp_DRAWCALL_lines.push( [ temp_A.PosX , temp_A.PosY , temp_B.PosX , temp_B.PosY ] )
-            let temp_newPoint = new ShOwOpe
-            (
-                POwO_Math_LERP(temp_A.PosX, temp_B.PosX, GLOBAL_Tvalue),
-                POwO_Math_LERP(temp_A.PosY, temp_B.PosY, GLOBAL_Tvalue),
-                -1,
-                "circle",16,1,"rgba(0,0,0,0)",0,"rgba(255,0,0,0.5)",false,"lerpingPoints"
-            )
-            temp_TODO_B.push(temp_newPoint)
-            temp_DRAWCALL_points.push(temp_newPoint)
+            out_drawcall_lines.push( [ temp_A[0] , temp_A[1] , temp_B[0] , temp_B[1] ] )
+            let temp_V = [ POwO_Math_LERP(temp_A[0], temp_B[0], inCurrentTValue),POwO_Math_LERP(temp_A[1], temp_B[1], inCurrentTValue) ]
+            temp_TODO_B.push(temp_V)
+            out_drawcall_points.push(temp_V)
         }
 
+        //move from todoA to todoB, getting ready for the next iter
         temp_TODO_A = []
         for(let i = 0 ; i < temp_TODO_B.length ; i++)
         {
@@ -118,31 +121,74 @@ function POwO_RedrawAll()
     }
 
     //at this point, temp_TODO_A only has one point left, which is the final LERPING point
-    temp_TODO_A[0].ColorFill = "rgba(255,192,0,1)"
+    out_final_pos = [ temp_TODO_A[0][0] , temp_TODO_A[0][1] ]
 
-    //render from DRAWCALL LIST
+    return [ out_final_pos , out_drawcall_lines , out_drawcall_points ]
+}
 
-    for(let i = 0 ; i < temp_DRAWCALL_lines.length ; i ++)
+function POwO_RedrawAll(inDrawData)
+{
+    //clear frame
+    ctx.clearRect(0, 0, canvas.width, canvas.height); 
+
+
+    //draw bezier curve
+    let temp_trailPositions = []
+    for(let i = 0 ; i <= 1 ; i += GLOBAL_TvalueDelta)
+    {
+        let temp_Catch = POwO_QuickCalculate(i)
+        temp_trailPositions.push( temp_Catch[0] )
+    }
+    console.log(JSON.stringify(temp_trailPositions))
+    ctx.beginPath()
+    ctx.strokeStyle = "rgba(255,255,255,1)"
+    ctx.lineWidth = 5
+    ctx.moveTo( temp_trailPositions[0][0] , temp_trailPositions[0][1] )
+    for(let i = 1 ; i < temp_trailPositions.length; i ++) //draw all the lines
+    {
+        ctx.lineTo( temp_trailPositions[i][0] , temp_trailPositions[i][1] )
+    }
+    ctx.stroke()
+
+    //prepare to draw contorl points, lerping points, lerping lines, and final point
+    let in_finalPos = inDrawData[0]
+    let in_drawcall_lines = inDrawData[1]
+    let in_drawcall_points = inDrawData[2]
+
+    
+
+    //draw all the lines
+    ctx.strokeStyle = "rgba(255,255,255,0.25)"
+    ctx.lineWidth = 2
+    for(let i = 0 ; i < in_drawcall_lines.length ; i ++) 
     {
         ctx.beginPath()
-        ctx.moveTo( temp_DRAWCALL_lines[i][0] , temp_DRAWCALL_lines[i][1] )
-        ctx.lineTo( temp_DRAWCALL_lines[i][2] , temp_DRAWCALL_lines[i][3] )
-        ctx.strokeStyle = "rgba(255,255,255,0.5)"
-        ctx.lineWidth = 2
+        ctx.moveTo( in_drawcall_lines[i][0] , in_drawcall_lines[i][1] )
+        ctx.lineTo( in_drawcall_lines[i][2] , in_drawcall_lines[i][3] )
         ctx.stroke()
     }
 
-    for(let i = 0 ; i < temp_DRAWCALL_points.length ; i++)
+    //draw all the lerping points
+    ctx.fillStyle = "rgba(255,0,0,0.5)";
+    ctx.strokeStyle = "rgba(0,0,0,0)";
+    ctx.lineWidth = 0;
+    for(let i = 0 ; i < in_drawcall_points.length ; i++) 
     {
-        temp_DRAWCALL_points[i].drawMe(ctx)
+        if (i === in_drawcall_points.length - 1)
+        {
+            ctx.fillStyle = "rgba(255,192,0,1)";
+        }
+
+        ctx.beginPath()
+        ctx.arc(in_drawcall_points[i][0], in_drawcall_points[i][1], 16, 0, Math.PI * 2)
+        ctx.fill();
+        ctx.stroke();
     }
 
-    for(let i = 0 ; i < GLOBAL_shapeList.length ; i++)
+    for(let i = 0 ; i < GLOBAL_shapeList.length ; i++) //draw all control points
     {
         GLOBAL_shapeList[i].drawMe(ctx)
     }
-
-
 }
 
 
@@ -267,10 +313,11 @@ canvas.addEventListener("mousemove", (event) => {
 
     const { temp_mouseX, temp_mouseY } = POwO_getMouse(event);
 
-    GLOBAL_selectedShape.PosX = temp_mouseX - GLOBAL_dragOffsetX;
-    GLOBAL_selectedShape.PosY = temp_mouseY - GLOBAL_dragOffsetY;
+    GLOBAL_selectedShape.PosX = POwO_Math_Clamp(0,temp_mouseX - GLOBAL_dragOffsetX, 1920) ;
+    GLOBAL_selectedShape.PosY = POwO_Math_Clamp(0,temp_mouseY - GLOBAL_dragOffsetY,1080);
 
-    POwO_RedrawAll();
+    let temp_DrawData = POwO_QuickCalculate(GLOBAL_Tvalue)
+    POwO_RedrawAll(temp_DrawData);
 });
 
 canvas.addEventListener("mouseup", () => {
@@ -286,15 +333,26 @@ HTML_Body.addEventListener("mouseup", () => {
 document.addEventListener("keydown",(event)=>{
     if (event.key === "1")
     {
-        GLOBAL_Tvalue = POwO_Math_Clamp(0,GLOBAL_Tvalue - 1/64,1)
+        GLOBAL_Tvalue = POwO_Math_Clamp(0,GLOBAL_Tvalue - GLOBAL_TvalueDelta,1)
+        console.log("Tvalue : " + GLOBAL_Tvalue)
     }
     else if (event.key === "2")
     {
-        GLOBAL_Tvalue = POwO_Math_Clamp(0,GLOBAL_Tvalue + 1/64,1)
+        GLOBAL_Tvalue = POwO_Math_Clamp(0,GLOBAL_Tvalue + GLOBAL_TvalueDelta,1)
+        console.log("Tvalue : " + GLOBAL_Tvalue)
+    }
+    else if (event.key === "3")
+    {
+        GLOBAL_shapeList.pop()
+    }
+    else if (event.key === "4")
+    {
+        GLOBAL_shapeList.push( new ShOwOpe(1920/2, 1080/2, 1, "circle", 25, -1, "rgba(0,0,0,0)", 0, "rgba(255,0,0,1)",true,"P" + GLOBAL_shapeList.length) )
     }
 
-    console.log("Tvalue : " + GLOBAL_Tvalue)
-    POwO_RedrawAll()
+    
+    let temp_DrawData = POwO_QuickCalculate(GLOBAL_Tvalue)
+    POwO_RedrawAll(temp_DrawData);
 })
 
 var GLOBAL_shapeList = [];
@@ -302,6 +360,7 @@ var GLOBAL_selectedShape = null;
 var GLOBAL_dragOffsetX = 0;
 var GLOBAL_dragOffsetY = 0;
 var GLOBAL_Tvalue = 0
+var GLOBAL_TvalueDelta = 1/128
 
 
 
@@ -319,5 +378,6 @@ GLOBAL_shapeList.push(smol_P1)
 GLOBAL_shapeList.push(smol_P2)
 GLOBAL_shapeList.push(smol_P3)
 
-POwO_RedrawAll()
+let temp_DrawData = POwO_QuickCalculate(GLOBAL_Tvalue)
+POwO_RedrawAll(temp_DrawData);
 
