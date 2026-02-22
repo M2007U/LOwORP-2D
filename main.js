@@ -243,6 +243,61 @@ function POwO_RedrawAll(inDrawData)
     }
 }
 
+function POwO_Action_SetT(inValue)
+{
+    GLOBAL_Tvalue = POwO_Math_Clamp(0,inValue,1)
+    let temp_DrawData = POwO_QuickCalculate(GLOBAL_Tvalue)
+    console.log("Tvalue : " + GLOBAL_Tvalue)
+}
+
+function POwO_Action_AddRemoveControlPoints(inValue)
+{
+    if (inValue === -1)
+    {
+        GLOBAL_shapeList.pop()
+    }
+    else if (inValue === 1)
+    {
+        let temp_R = POwO_Math_LERP(0,300,Math.random())
+        let temp_A = POwO_Math_LERP(0,2 * Math.PI,Math.random())
+        let temp_CX = canvas.width/2
+        let temp_CY = canvas.height/2
+        GLOBAL_shapeList.push
+        (
+            new ShOwOpe
+            (
+                temp_CX + Math.cos(temp_A) * temp_R ,
+                temp_CY + Math.sin(temp_A) * temp_R ,
+                1,
+                "circle",
+                GLOBAL_visual_controlPoint_radius_solid,
+                -1,
+                "rgba(0,0,0,0)",
+                0,
+                "rgba(255,0,0,1)",
+                true,
+                "P" + GLOBAL_shapeList.length
+            )
+        )
+
+    }
+}
+
+function POwO_Action_PositionZoomShrink(inValue)
+{
+    for(let i = 0 ; i < GLOBAL_shapeList.length ; i++)
+    {
+        let oldPosX = GLOBAL_shapeList[i].PosX
+        let oldPosY = GLOBAL_shapeList[i].PosY
+        let oldDisX = oldPosX - canvas.width / 2
+        let oldDisY = oldPosY - canvas.height / 2
+        let newDisX = oldDisX * inValue
+        let newDisY = oldDisY * inValue
+        GLOBAL_shapeList[i].PosX = POwO_Math_Clamp(0,canvas.width / 2 + newDisX,canvas.width)
+        GLOBAL_shapeList[i].PosY = POwO_Math_Clamp(0,canvas.height / 2 + newDisY,canvas.height)
+    }
+}
+
 
 
 // ---- ---- ---- ---- SETUP
@@ -338,7 +393,7 @@ class ShOwOpe
     }
 }
 
-canvas.addEventListener("mousedown", (event) => {
+canvas.addEventListener("pointerdown", (event) => {
 
     const { temp_mouseX, temp_mouseY } = POwO_getMouse(event);
 
@@ -359,7 +414,7 @@ canvas.addEventListener("mousedown", (event) => {
 
 });
 
-canvas.addEventListener("mousemove", (event) => {
+canvas.addEventListener("pointermove", (event) => {
 
     if (!GLOBAL_selectedShape) return;
 
@@ -372,67 +427,67 @@ canvas.addEventListener("mousemove", (event) => {
     POwO_RedrawAll(temp_DrawData);
 });
 
-canvas.addEventListener("mouseup", () => {
+canvas.addEventListener("pointerup", () => {
     GLOBAL_selectedShape = null;
     console.log("selectedShape : " + JSON.stringify(GLOBAL_selectedShape))
 });
 
-HTML_Body.addEventListener("mouseup", () => {
+HTML_Body.addEventListener("pointerup", () => {
     GLOBAL_selectedShape = null;
     console.log("selectedShape : " + JSON.stringify(GLOBAL_selectedShape))
 });
 
 document.addEventListener("keydown",(event)=>{
-    if (event.key === "1")
-    {
-        GLOBAL_Tvalue = POwO_Math_Clamp(0,GLOBAL_Tvalue - GLOBAL_TvalueDelta,1)
-        console.log("Tvalue : " + GLOBAL_Tvalue)
-    }
-    else if (event.key === "2")
-    {
-        GLOBAL_Tvalue = POwO_Math_Clamp(0,GLOBAL_Tvalue + GLOBAL_TvalueDelta,1)
-        console.log("Tvalue : " + GLOBAL_Tvalue)
-    }
-    else if (event.key === "3")
-    {
-        GLOBAL_shapeList.pop()
-    }
-    else if (event.key === "4")
-    {
-        let temp_R = POwO_Math_LERP(0,300,Math.random())
-        let temp_A = POwO_Math_LERP(0,2 * Math.PI,Math.random())
-        let temp_CX = canvas.width/2
-        let temp_CY = canvas.height/2
-        GLOBAL_shapeList.push( new ShOwOpe(  temp_CX + Math.cos(temp_A) * temp_R , temp_CY + Math.sin(temp_A) * temp_R , 1, "circle", GLOBAL_visual_controlPoint_radius_solid, -1, "rgba(0,0,0,0)", 0, "rgba(255,0,0,1)",true,"P" + GLOBAL_shapeList.length) )
-    }
-    else if (event.key === "5" || event.key === "6")
-    {
-        let temp_factor = 1
-        if (event.key === "5"){temp_factor = 0.75}
-        else if (event.key === "6"){temp_factor = 1.25}
-        
-        for(let i = 0 ; i < GLOBAL_shapeList.length ; i++)
-        {
-            let oldPosX = GLOBAL_shapeList[i].PosX
-            let oldPosY = GLOBAL_shapeList[i].PosY
-            let oldDisX = oldPosX - canvas.width / 2
-            let oldDisY = oldPosY - canvas.height / 2
-            let newDisX = oldDisX * temp_factor
-            let newDisY = oldDisY * temp_factor
-            GLOBAL_shapeList[i].PosX = POwO_Math_Clamp(0,canvas.width / 2 + newDisX,canvas.width)
-            GLOBAL_shapeList[i].PosY = POwO_Math_Clamp(0,canvas.height / 2 + newDisY,canvas.height)
 
-        }
+    switch (event.key) {
+        case "1":
+            GLOBAL_Tvalue = POwO_Math_Clamp(0,GLOBAL_Tvalue - GLOBAL_TvalueDelta,1)
+            POwO_Action_SetT(GLOBAL_Tvalue)
+        break;
+
+        case "2":
+            GLOBAL_Tvalue = POwO_Math_Clamp(0,GLOBAL_Tvalue + GLOBAL_TvalueDelta,1)
+            POwO_Action_SetT(GLOBAL_Tvalue)
+        break;
+
+        case "3":
+            POwO_Action_AddRemoveControlPoints(-1)
+        break;
+
+        case "4":
+            POwO_Action_AddRemoveControlPoints(1)
+        break;
+
+        case "5":
+            POwO_Action_PositionZoomShrink(0.75)
+        break;
+
+        case "6":
+            POwO_Action_PositionZoomShrink(1.25)
+        break;
+
+
+        default:
+        break;
     }
 
-    
     let temp_DrawData = POwO_QuickCalculate(GLOBAL_Tvalue)
     POwO_RedrawAll(temp_DrawData);
 })
 
 window.addEventListener("message",(event)=>
 {
-    GLOBAL_Tvalue = POwO_Math_Clamp(0,event.data,1)
+    //event.data = ["instructionCode","value"]
+
+    switch (event.data[0]) {
+        case "t=" : GLOBAL_Tvalue = event.data[1] ; break ;
+        case "c-" : POwO_Action_AddRemoveControlPoints(-1) ; break ;
+        case "c+" : POwO_Action_AddRemoveControlPoints(1) ; break ;
+        case "z-" : POwO_Action_PositionZoomShrink(0.75) ; break ;
+        case "z+" : POwO_Action_PositionZoomShrink(1.25) ; break ;
+        default : console.log("got message : " + JSON.stringify(event.data)) ; break;
+    }
+
     let temp_DrawData = POwO_QuickCalculate(GLOBAL_Tvalue)
     POwO_RedrawAll(temp_DrawData);
 })
